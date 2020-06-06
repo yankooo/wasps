@@ -2,31 +2,31 @@
 
 [![Build Status](https://travis-ci.com/yankooo/wasps.svg?branch=master)](https://travis-ci.com/yankooo/wasps) [![Go Report Card](https://goreportcard.com/badge/github.com/yankooo/wasps)](https://goreportcard.com/report/github.com/yankooo/wasps) [![Codecov](https://img.shields.io/codecov/c/github/yankooo/wasps/master)](https://codecov.io/gh/yankooo/wasps) [![Doc for wasps](https://img.shields.io/badge/go.dev-doc-007d9c?style=flat&logo=appveyor)](https://pkg.go.dev/github.com/yankooo/wasps?tab=doc)
 
-English | [中文](README_ZH.md)
+[英文](README.md) | 中文
 
-## Introduction
+## 简介
 
-`wasps` is a lightweight goroutine pool that implements scheduling management for multiple goroutines.
+`wasps`是一个轻量级的 goroutine 池，实现了对多个 goroutine 的调度管理。
 
-## Features:
+## 功能
 
-- Automatic scheduling goroutine.
-- Provides commonly-used interfaces: task submission, getting the number of running goroutines, dynamically adjusting the size of the pool, and releasing the pool.
-- Provide callback type goroutine pool, serialization work goroutine pool, custom work goroutine pool.
-- Support custom work goroutine, support panic processing of task goroutine, and custom pass parameter of closure function.
-- Asynchronous mechanism.
+- 自动调度goroutine。
+- 提供了常用的接口：任务提交、获取运行中的 goroutine 数量、动态调整 Pool 大小、释放 Pool。
+- 提供了回调类型的协程池、串行化工作的协程池、自定义工作协程的协程池。
+- 支持自定义工作协程，支持任务协程的panic处理以及闭包函数的自定义传参。
+- 异步机制
 
-## Docs
+## 文档
 
 https://godoc.org/github.com/yankooo/wasps
 
-## Installation
+## 安装
 
 ``` go
 go get github.com/yankooo/wasps
 ```
 
-## Use
+## 使用
 ``` go
 package main
 
@@ -72,4 +72,3 @@ func main()  {
 	wg.Wait()
 }
 ```
-
