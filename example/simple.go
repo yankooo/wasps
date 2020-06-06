@@ -1,31 +1,3 @@
-# wasps
-
-English | [中文](README_ZH.md)
-
-## Introduction
-
-`wasps` is a lightweight goroutine pool that implements scheduling management for multiple goroutines.
-
-## Features:
-
-- Automatic scheduling goroutine.
-- Provides commonly used interfaces: task submission, getting the number of running goroutines, dynamically adjusting the size of the pool, and releasing the pool.
-- Provide callback type goroutine pool, serialization work goroutine pool, custom work goroutine pool.
-- Support custom work goroutine, support panic processing of task goroutine and custom pass parameter of closure function.
-- Asynchronous mechanism
-
-## Docs
-
-https://godoc.org/github.com/yankooo/wasps
-
-## Installation
-
-``` go
-go get github.com/yankooo/wasps
-```
-
-## Use
-``` go
 package main
 
 import (
@@ -37,7 +9,7 @@ import (
 	"time"
 )
 
-func main()  {
+func main() {
 	pool := wasps.NewCallback(5)
 	defer func() {
 		pool.Release()
@@ -69,5 +41,3 @@ func main()  {
 
 	wg.Wait()
 }
-```
-
