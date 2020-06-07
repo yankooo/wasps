@@ -1,6 +1,7 @@
 # wasps
 
 [![Build Status](https://travis-ci.com/yankooo/wasps.svg?branch=master)](https://travis-ci.com/yankooo/wasps) [![Go Report Card](https://goreportcard.com/badge/github.com/yankooo/wasps)](https://goreportcard.com/report/github.com/yankooo/wasps) [![Codecov](https://img.shields.io/codecov/c/github/yankooo/wasps/master)](https://codecov.io/gh/yankooo/wasps) [![Doc for wasps](https://img.shields.io/badge/go.dev-doc-007d9c?style=flat&logo=appveyor)](https://pkg.go.dev/github.com/yankooo/wasps?tab=doc)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fyankooo%2Fwasps.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fyankooo%2Fwasps?ref=badge_shield)
 
 English | [中文](README_ZH.md)
 
@@ -73,3 +74,7 @@ func main()  {
 }
 ```
 
+
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fyankooo%2Fwasps.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fyankooo%2Fwasps?ref=badge_large)
