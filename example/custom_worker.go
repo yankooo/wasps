@@ -15,7 +15,7 @@ type customWorker struct {
 type customTypeFn func() error
 
 func (c *customWorker) Do(job *wasps.Job) {
-	f := job.Task.(customTypeFn)
+	f := job.PayLoad.(customTypeFn)
 	_ = f()
 }
 

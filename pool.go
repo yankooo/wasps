@@ -80,20 +80,25 @@ func NewCallback(capacity int) *Pool {
 }
 
 // Task payload
-type taskFunc func(args ...interface{})
+type payLoad interface {}
+
+// Do will submit a task to the task queue of the goroutine pool.
+func (p *Pool) Do(in DefaultWorkerPayLoad, opts ...TaskOption) {
+	p.SubmitWithContext(context.TODO(), in, opts...)
+}
 
 // Submit will submit a task to the task queue of the goroutine pool.
-func (p *Pool) Submit(tf taskFunc, opts ...TaskOption) {
-	p.SubmitWithContext(context.TODO(), tf, opts...)
+func (p *Pool) Submit(in payLoad, opts ...TaskOption) {
+	p.SubmitWithContext(context.TODO(), in, opts...)
 }
 
 // SubmitWithContext will submit a task to the task queue of the coroutine pool, accompanied by a context.
 // Before the task is executed, if the context is canceled, the task will not be executed.
-func (p *Pool) SubmitWithContext(ctx context.Context, tf taskFunc, opts ...TaskOption) {
-	p.submit(ctx, tf, opts...)
+func (p *Pool) SubmitWithContext(ctx context.Context, in payLoad, opts ...TaskOption) {
+	p.submit(ctx, in, opts...)
 }
 
-func (p *Pool) submit(ctx context.Context, tf taskFunc, opts ...TaskOption) {
+func (p *Pool) submit(ctx context.Context, in payLoad, opts ...TaskOption) {
 	tskOpt := defaultTaskOption()
 	for _, opt := range opts {
 		opt.apply(tskOpt)
@@ -107,7 +112,7 @@ func (p *Pool) submit(ctx context.Context, tf taskFunc, opts ...TaskOption) {
 
 	p.taskChan <- &Job{
 		Ctx:       ctx,
-		CB:        tf,
+		PayLoad:   in,
 		Args:      tskOpt.Args,
 		RecoverFn: tskOpt.RecoverFn}
 }
@@ -115,7 +120,7 @@ func (p *Pool) submit(ctx context.Context, tf taskFunc, opts ...TaskOption) {
 // Stats contains running pool Infos.
 type Stats struct {
 	Cap         int // goroutine pool capacity
-	IdleWorker  int // Number of work goroutines in idle state
+	IdleWorker  int // Number of work goroutines payLoad idle state
 	WaitingTask int // Number of tasks waiting to be processed
 }
 
@@ -128,8 +133,8 @@ func (p *Pool) Stats() *Stats {
 	return <-p.stat
 }
 
-// SetCapacity changes the capacity of the pool and the total number of workers in the Pool. This can be called
-// by any goroutine at any time unless the Pool has been stopped, in which case
+// SetCapacity changes the capacity of the pool and the total number of workers payLoad the Pool. This can be called
+// by any goroutine at any time unless the Pool has been stopped, payLoad which case
 // a panic will occur.
 func (p *Pool) SetCapacity(size int) {
 	if size == p.getCap() {

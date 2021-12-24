@@ -20,7 +20,7 @@ type Worker interface {
 // Job is the struct that represents the smallest unit of worker tasks
 type Job struct {
 	Ctx       context.Context
-	CB      taskFunc
+	PayLoad   payLoad
 	Args      []interface{}
 	RecoverFn func(r interface{})
 }
@@ -31,6 +31,8 @@ type callbackWorker struct {
 	close chan struct{}
 }
 
+type DefaultWorkerPayLoad func(ctx context.Context, args ...interface{})
+
 func (c *callbackWorker) Do(job *Job) {
 	select {
 	case <-job.Ctx.Done():
@@ -38,7 +40,12 @@ func (c *callbackWorker) Do(job *Job) {
 	default:
 	}
 
-	job.CB(job.Args...)
+	f, ok := job.PayLoad.(DefaultWorkerPayLoad)
+	if ok {
+		f(job.Ctx, job.Args...)
+	} else {
+		panic("invalid input callback")
+	}
 }
 
 func (c *callbackWorker) JobChan() chan *Job {
