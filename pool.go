@@ -2,7 +2,10 @@ package wasps
 
 import (
 	"context"
+	"log"
+	"math/rand"
 	"sync"
+	"time"
 )
 
 // Pool is a struct that manages a collection of workers, each with their own
@@ -16,6 +19,11 @@ type Pool struct {
 	stop       chan struct{ size int }
 	stat       chan *Stats
 	m          sync.RWMutex
+
+	// task queue and work queue
+	taskQueueSize int
+	taskQ         []*Job
+	workerQ       []Worker
 }
 
 // Capacity returns the current capacity of the pool.
@@ -43,12 +51,13 @@ func (p *Pool) setCap(cap int) {
 // ctor - constructor function that creates new Worker types
 func New(capacity int, ctor func() Worker) *Pool {
 	p := &Pool{
-		capacity:   capacity,
-		ctor:       ctor,
-		workerChan: make(chan Worker, capacity),
-		taskChan:   make(chan *Job, 1),
-		stop:       make(chan struct{ size int }),
-		stat:       make(chan *Stats),
+		capacity:      capacity,
+		ctor:          ctor,
+		workerChan:    make(chan Worker, capacity),
+		taskChan:      make(chan *Job, 1),
+		stop:          make(chan struct{ size int }, 1),
+		stat:          make(chan *Stats),
+		taskQueueSize: defaultPoolTaskQueueSize,
 	}
 
 	go p.startSchedule()
@@ -71,28 +80,36 @@ func NewCallback(capacity int) *Pool {
 }
 
 // Task payload
-type payLoad interface{}
+type taskFunc func(args ...interface{})
 
 // Submit will submit a task to the task queue of the goroutine pool.
-func (p *Pool) Submit(pl payLoad, opts ...TaskOption) {
-	p.SubmitWithContext(context.TODO(), pl, opts...)
+func (p *Pool) Submit(tf taskFunc, opts ...TaskOption) {
+	p.SubmitWithContext(context.TODO(), tf, opts...)
 }
 
 // SubmitWithContext will submit a task to the task queue of the coroutine pool, accompanied by a context.
 // Before the task is executed, if the context is canceled, the task will not be executed.
-func (p *Pool) SubmitWithContext(ctx context.Context, pl payLoad, opts ...TaskOption) {
-	p.submit(ctx, pl, opts...)
+func (p *Pool) SubmitWithContext(ctx context.Context, tf taskFunc, opts ...TaskOption) {
+	p.submit(ctx, tf, opts...)
 }
 
-func (p *Pool) submit(ctx context.Context, task interface{}, opts ...TaskOption) {
+func (p *Pool) submit(ctx context.Context, tf taskFunc, opts ...TaskOption) {
+	tskOpt := defaultTaskOption()
 	for _, opt := range opts {
-		opt.apply(defaultTaskOptions)
+		opt.apply(tskOpt)
 	}
+
+	// check task queue, ovoid OOM
+	for stats := p.Stats(); stats.WaitingTask == p.taskQueueSize; {
+		log.Printf("pool task too manny, wait schedule !!!")
+		time.Sleep(time.Duration(rand.Intn(1000)) * time.Millisecond)
+	}
+
 	p.taskChan <- &Job{
 		Ctx:       ctx,
-		Task:      task,
-		Args:      defaultTaskOptions.Args,
-		RecoverFn: defaultTaskOptions.RecoverFn}
+		CB:        tf,
+		Args:      tskOpt.Args,
+		RecoverFn: tskOpt.RecoverFn}
 }
 
 // Stats contains running pool Infos.
@@ -156,43 +173,39 @@ func (p *Pool) isClosed() bool {
 
 // startSchedule will schedule worker queue and task queue.
 func (p *Pool) startSchedule() {
-	// create task queue and work queue
-	var taskQ []*Job
-	var workerQ []Worker
-
 	for {
 		var activeChan chan *Job
 		var activeTask *Job
 
 		// When the task queue and work goroutine queue have data at the same time,
 		// take out the task and work goroutine to complete the task
-		if len(taskQ) > 0 && len(workerQ) > 0 {
-			activeChan = workerQ[0].JobChan()
-			activeTask = taskQ[0]
+		if len(p.taskQ) > 0 && len(p.workerQ) > 0 {
+			activeChan = p.workerQ[0].JobChan()
+			activeTask = p.taskQ[0]
 		}
 
 		select {
 		// append task
 		case r := <-p.taskChan:
-			taskQ = append(taskQ, r)
+			p.taskQ = append(p.taskQ, r)
 		// append idle worker
 		case w := <-p.workerChan:
-			workerQ = append(workerQ, w)
+			p.workerQ = append(p.workerQ, w)
 		// complete the task
 		case activeChan <- activeTask:
-			taskQ = taskQ[1:]
-			workerQ = workerQ[1:]
+			p.taskQ = p.taskQ[1:]
+			p.workerQ = p.workerQ[1:]
 		// export pool status
 		case <-p.stat:
 			p.stat <- &Stats{
 				Cap:         p.getCap(),
-				IdleWorker:  len(workerQ),
-				WaitingTask: len(taskQ),
+				IdleWorker:  len(p.workerQ),
+				WaitingTask: len(p.taskQ),
 			}
 		// reduce one or all worker
 		case s := <-p.stop:
 			var start int
-			var idleWorkerNum = len(workerQ)
+			var idleWorkerNum = len(p.workerQ)
 			if s.size == -1 {
 				start = 0
 			} else if s.size == 0 {
@@ -202,10 +215,10 @@ func (p *Pool) startSchedule() {
 			}
 
 			for ; start < idleWorkerNum; start++ {
-				worker := workerQ[0]
+				worker := p.workerQ[0]
 				worker.StopChan() <- struct{}{}
 				<-worker.StopChan()
-				workerQ = workerQ[1:]
+				p.workerQ = p.workerQ[1:]
 			}
 
 			p.stop <- struct{ size int }{}

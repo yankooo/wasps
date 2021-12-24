@@ -20,7 +20,7 @@ type Worker interface {
 // Job is the struct that represents the smallest unit of worker tasks
 type Job struct {
 	Ctx       context.Context
-	Task      interface{}
+	CB      taskFunc
 	Args      []interface{}
 	RecoverFn func(r interface{})
 }
@@ -38,8 +38,7 @@ func (c *callbackWorker) Do(job *Job) {
 	default:
 	}
 
-	cb := job.Task.(func(...interface{}))
-	cb(job.Args...)
+	job.CB(job.Args...)
 }
 
 func (c *callbackWorker) JobChan() chan *Job {

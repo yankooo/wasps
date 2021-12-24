@@ -40,8 +40,10 @@ func WithArgs(args ...interface{}) TaskOption {
 	})
 }
 
-var defaultTaskOptions = &taskOptions{
-	RecoverFn: func(r interface{}) {},
+func defaultTaskOption() *taskOptions {
+	return &taskOptions{
+		RecoverFn: func(r interface{}) {},
+	}
 }
 
 type poolOptions struct {
@@ -68,4 +70,4 @@ func newFuncPoolOption(f func(*poolOptions)) *funcPoolOption {
 	}
 }
 
-var defaultPoolOptions = &poolOptions{}
+const defaultPoolTaskQueueSize = 1024

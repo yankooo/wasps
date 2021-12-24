@@ -40,4 +40,13 @@ func main() {
 	})
 
 	wg.Wait()
+
+	time.Sleep(time.Second*3)
+
+	num = 200
+	pool.Submit(func(args ...interface{}) {
+		log.Printf("four submit %+v", args)
+	})
+
+	time.Sleep(time.Hour)
 }
