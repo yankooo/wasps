@@ -31,55 +31,60 @@ go get github.com/yankooo/wasps
 package main
 
 import (
-	"context"
-	"fmt"
-	"github.com/yankooo/wasps"
-	"log"
-	"sync"
-	"time"
+    "context"
+    "fmt"
+    "github.com/yankooo/wasps"
+    "log"
+    "sync"
+    "time"
 )
 
 func main() {
-	pool := wasps.NewCallback(5)
-	defer func() {
-		pool.Release()
-	}()
+    // 初始化协程池
+    pool := wasps.NewCallback(5)
+    defer func() {
+        pool.Release()
+    }()
 
-	var num = 10
-	ctx, _ := context.WithTimeout(context.TODO(), 1*time.Second)
+    var num = 10
+    ctx, _ := context.WithTimeout(context.TODO(), 1*time.Second)
 
-	var wg sync.WaitGroup
-	wg.Add(3)
+    var wg sync.WaitGroup
+    wg.Add(3)
+    
+    // 提交第一个任务
+    var f1 wasps.DefaultWorkerPayLoad = func(ctx context.Context, args ...interface{}) {
+        defer wg.Done()
+        num := args[0].(int)
+        log.Printf("first submit %d", num*2)
+    }
+    pool.SubmitWithContext(ctx, f1, wasps.WithArgs(num))
+    
+    // 提交第二个任务
+    var f2 wasps.DefaultWorkerPayLoad = func(ctx context.Context, args ...interface{}) {
+        defer wg.Done()
+        num := args[0].(int)
+        log.Printf("second submit %d", num)
+    }
+    pool.Submit(f2, wasps.WithArgs(num), wasps.WithRecoverFn(func(r interface{}) { fmt.Printf("catch panic: %+v\n", r) }))
+    
+    // 提交第三个任务
+    num = 200
+    var f3 wasps.DefaultWorkerPayLoad = func(ctx context.Context, args ...interface{}) {
+        defer wg.Done()
+        log.Printf("third submit %d", num)
+    }
+    pool.Submit(f3)
 
-	var f1 wasps.DefaultWorkerPayLoad = func(ctx context.Context, args ...interface{}) {
-		defer wg.Done()
-		num := args[0].(int)
-		log.Printf("first submit %d", num*2)
-	}
-	pool.SubmitWithContext(ctx, f1, wasps.WithArgs(num))
+    wg.Wait()
 
-	var f2 wasps.DefaultWorkerPayLoad = func(ctx context.Context, args ...interface{}) {
-		defer wg.Done()
-		num := args[0].(int)
-		log.Printf("second submit %d", num)
-	}
-	pool.Submit(f2, wasps.WithArgs(num), wasps.WithRecoverFn(func(r interface{}) { fmt.Printf("catch panic: %+v\n", r) }))
+    time.Sleep(time.Second*3)
+    
+    // 直接提交单个任务，不用sync group
+    pool.Do(func(ctx context.Context, args ...interface{}) {
+        log.Printf("four submit %+v", args)
+    })
 
-	num = 200
-	var f3 wasps.DefaultWorkerPayLoad = func(ctx context.Context, args ...interface{}) {
-		defer wg.Done()
-		log.Printf("third submit %d", num)
-	}
-	pool.Submit(f3)
-
-	wg.Wait()
-
-	time.Sleep(time.Second*3)
-
-	pool.Do(func(ctx context.Context, args ...interface{}) {
-		log.Printf("four submit %+v", args)
-	})
-
-	time.Sleep(time.Hour)
+    time.Sleep(time.Hour)
 }
 ```
